@@ -7,17 +7,21 @@
 
 node* new_node(int data) {
 	node* new_node = (node*)malloc(sizeof(node));
+	if (!new_node)
+		return NULL;
+	else {
 	new_node->data = data;
 	new_node->left = NULL;
 	new_node->right = NULL;
 	new_node->height = 1;
-	return new_node;
+	return new_node;}
 }
 
 node* insertel(node* p, int data) {
 	if (!p) return new_node(data);
 	if (p->data > data) p->left = insertel(p->left, data);
-	else p->right = insertel(p->right, data);
+	else if (p->data < data) p->right = insertel(p->right, data);
+	else return balance(p);
 	return balance(p);
 }
 
