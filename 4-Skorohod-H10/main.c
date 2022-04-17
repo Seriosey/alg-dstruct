@@ -4,16 +4,12 @@
 #include <string.h>
 #include "AVLTree.h"
 #include <malloc.h>
-#define BUFFER_SIZE 16
 
 int main() {
-	char command;
 	int value;
-	char buffer[BUFFER_SIZE] = { 0 };
 	char letter;
 	node* ROOT = NULL;
-	while (fgets(buffer, BUFFER_SIZE, stdin)) {
-		sscanf_s(buffer, "%c %i", &letter, &value);
+	while (fscanf(stdin, "%c %i", &letter, &value)!=EOF)
 		switch (letter) {
 		case 'a':
 			ROOT = insertel(ROOT, value);
@@ -27,7 +23,8 @@ int main() {
 			else
 				puts("no");
 			break;
-
+		default:
+			break;
 		}
 	}
 
