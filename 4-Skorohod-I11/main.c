@@ -9,24 +9,22 @@ int main()
 {
     char cmd;
     int value;
-    node* tree = NULL;
-    node* s;
+    node* v = NULL;
     while (fscanf(stdin, "%c %i", &cmd, &value))
     {
         switch (cmd)
         {
         case 'a':
-            tree = add(tree, value);
+            v = insert(v, value);
             break;
         case 'r':
-            tree = del(tree, value);
+            v = delete(v, value);
             break;
         case 'f':
-            s = search(tree, value);
-            if (s->keys[0] == value)
-                printf("yes\n");
+            if (search(v, value))
+                fprintf(stdout, "yes\n");
             else
-                printf("no\n");
+                fprintf(stdout, "no\n");
             break;
 
         }
