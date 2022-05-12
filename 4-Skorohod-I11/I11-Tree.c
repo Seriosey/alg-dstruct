@@ -3,264 +3,375 @@
 #include <string.h>
 #include "I11-Tree.h"
 #include <malloc.h>
+#define T 2
 #define _CRT_SECURE_NO_WARNINGS
 
-node_list* list_add(node_list* l, node* v) {
-	node_list* n = (node_list*)malloc(sizeof(node_list));
-	l->next = n;
-	n->next = NULL;
-	n->prev = l;
-	n->val = v;
-	return n;
-}
-
-node* Node() {
+node* create_node(int key, node* first, node* second, node* parent) {
     node* n = (node*)malloc(sizeof(node));
-    n->parent = NULL;
     n->length = 1;
-    n->children[0] = NULL;
-    n->children[1] = NULL;
+    n->keys[0] = key;
+    n->children[0] = first;
+    n->children[1] = second;
     n->children[2] = NULL;
+    n->parent = parent;
     n->children[3] = NULL;
+    n->brother = NULL;
     return n;
 }
 
+void become_node2(node* n, int k, node* first, node* second) {
+    n->keys[0] = k;
+    n->children[0] = first;
+    n->children[1] = second;
+    n->children[2] = NULL;
+    n->parent = NULL;
+    n->brother = NULL;
+    n->children[3] = NULL;
+    n->length = 1;
+}
+
+int find(node* v, int x) {
+    if (v == NULL)
+        return 0;
+    for (int i = 0; i < v->length; i++)
+        if (v->keys[i] == x) return 1;
+    return 0;
+}
+
+node* v;
+
 node* root = NULL;
 
+node* insert(node* v, int x) { 
+
+    if (v == NULL) return create_node(x, NULL, NULL, NULL);
+    if (is_leaf(v)) insert_to_node(v, x);
+    else if (x <= v->keys[0]) insert(v->children[0], x);
+    else if (v->length == 1 || v->length == 2 &&  x <= v->keys[1]) insert(v->children[1], x);
+    else insert(v->children[2], x);
+
+    return (node*)split(v);
+}
+
+node* split(node* v) {
+    if (v-> length < 3) return (node*)v;
+
+    node* x = create_node(v->keys[0], v->children[0], v->children[1], v->parent);
+    node* y = create_node(v->keys[2], v->children[2], v->children[3], v->parent);
+
+    x->brother = y;
+
+    if (x->children[0]) x->children[0]->parent = x;
+    if (x->children[1]) x->children[1]->parent = x;
+    if (y->children[0]) y->children[0]->parent = y;
+    if (y->children[1]) y->children[1]->parent = y;
+
+    if (v->parent) {
+        insert_to_node(v->parent, v->keys[1]);
+
+        if (v->parent->children[0] == v) v->parent->children[0] = NULL;
+        else if (v->parent->children[1] == v) v->parent->children[1] = NULL;
+        else if (v->parent->children[2] == v) v->parent->children[2] = NULL;
+
+        if (v->parent->children[0] == NULL) {
+            v->parent->children[3] = v->parent->children[2];
+            v->parent->children[2] = v->parent->children[1];
+            v->parent->children[1] = y;
+            v->parent->children[0] = x;
+        }
+        else if (v->parent->children[1] == NULL) {
+            v->parent->children[3] = v->parent->children[2];
+            v->parent->children[2] = y;
+            v->parent->children[1] = x;
+        }
+        else {
+            v->parent->children[3] = y;
+            v->parent->children[2] = x;
+        }
+
+        return (node*)(v->parent);
+    }
+    else {
+        x->parent = v;
+        y->parent = v;
+        become_node2(v, v->keys[1], x, y);
+        return (node*)v;
+    }
+}
+
+int is_leaf(node* v) {
+    return (v->children[0] == NULL && v->children[1] == NULL && v->children[2] == NULL);
+}
+
+void insert_to_node(node* v, int x) {
+    v->keys[v->length] = x;
+    v->length+= 1;
+    sort(v);
+}
+
+void remove_from_node(node* v, int k) {
+    if (v->length >= 1 && v->keys[0] == k) {
+        v->keys[0] = v->keys[1];
+        v->keys[1] = v->keys[2];
+        v->length -= 1;
+    }
+    else if (v->length == 2 && v->keys[1] == k) {
+        v->keys[1] = v->keys[2];
+        v->length -= 1;
+    }
+}
+
+void sort(node* v) {
+    if (v->length == 1) return;
+    else if (v->length == 2) {
+        if (v->keys[0] > v->keys[1]) {
+            int temp = v->keys[0];
+            v->keys[0] = v->keys[1];
+            v->keys[1] = temp;
+        }
+    }
+    else if (v->length == 3) {
+        if (v->keys[0] > v->keys[1]) {
+            int temp = v->keys[0];
+            v->keys[0] = v->keys[1];
+            v->keys[1] = temp;
+        }
+        if (v->keys[0] > v->keys[2]) {
+            int temp = v->keys[0];
+            v->keys[0] = v->keys[2];
+            v->keys[2] = temp;
+        }
+        if (v->keys[1] > v->keys[2]) {
+            int temp = v->keys[1];
+            v->keys[1] = v->keys[2];
+            v->keys[2] = temp;
+        }
+    }
+}
 
 node* search(node* v, int x) {
-    node* d = v;
+    if (!v) return NULL;
+    if (find(v, x)) return v;
+    else if (x < v->keys[0]) return search(v->children[0], x);
+    else if ((v->length == 2) && (x < v->keys[1]) || (v->length == 1)) return search(v->children[1], x);
+    else if (v->length == 2) return search(v->children[2], x);
+    else return NULL;
+}
 
-    if (d == NULL) {
-        return NULL;
-    }
-    while (d->length != 1) {
-        if (d->length == 2) {
-            if (x <= d->keys[0]) {
-                d = d->children[0];
-            }
-            else {
-                d = d->children[1];
-            }
-        }
-        else if (x <= d->keys[0]) {
-            d = d->children[0];
-        }
-        else if (x <= d->keys[1]) {
-            d = d->children[1];
+node* delete(node* v, int x) {
+    node* knode = search(v, x);
+    if (knode == NULL) return v;
+
+    node* min = NULL;
+    if (knode->keys[0] == x)
+        min = search_min(knode->children[1]);
+    else
+        min = search_min(knode->children[2]);
+
+    if (min != NULL) {
+        if (x == knode->keys[0]) {
+            knode->keys[0] = min->keys[0];
+            min->keys[0] = x;
         }
         else {
-            d = d->children[2];
+            knode->keys[1] = min->keys[0];
+            min->keys[0] = x;
         }
+        knode = min;
     }
-    return d;
+    else return v;
+
+    delete (knode, x);
+    return fix(knode);
 }
 
-
-int cmpfu(const void* a, const void* b) {
-    node** val1 = (node**)a;
-    node** val2 = (node**)b;
-
-    return (*val1)->keys[0] - (*val2)->keys[0];
+node* search_min(node* v) {
+    if (!v) return NULL;
+    if (!(v->children[0])) return v;
+    else return search_min(v->children[0]);
 }
 
-void sort_son(node* v) {
-    if (v == NULL) {
-        return;
-    }
-    node* arr[4];
-    for (int i = 0; i < v->length; i++) {
-        arr[i] = v->children[i];
-    }
-    qsort(arr, v->length, sizeof(node*), cmpfu);
-
-    for (int i = 0; i < v->length; i++) {
-        v->children[i] = arr[i];
-    }
-}
-
-
-int subtree_max(node* v) {
-    node* d = v;
-    while (d->length != 1) {
-        d = d->children[d->length - 1];
-    }
-    return d->keys[0];
-}
-
-
-void update_keys(node* v) {
-    if (v == NULL) {
-        return;
-    }
-
-    node* p = v->parent;
-    while (p != NULL) {
-        for (int i = 0; i < p->length - 1; i++) {
-            p->keys[i] = subtree_max(p->children[i]);
-        }
-        p = p->parent;
-    }
-}
-
-
-void split_parent(node* d) {
-    if (d == NULL) return;
-    if (d->length > 3) {
-        node* b = Node();
-        b->parent = d->parent;
-        b->children[0] = d->children[2];
-        b->children[1] = d->children[3];
-        b->keys[0] = d->keys[2];
-        b->length = 2;
-        d->children[2]->parent = b;
-        d->children[3]->parent = b;
-        d->length = 2;
-        d->children[2] = NULL;
-        d->children[3] = NULL;
-
-        node* p = d->parent;
-        if (p != NULL) {
-            p->children[p->length] = b;
-            b->parent = p;
-            p->length++;
-            sort_son(p);
-            update_keys(b);
-            split_parent(p);
-        }
-        else {
-            node* new_root = Node();
-            new_root->children[0] = d;
-            new_root->children[1] = b;
-            new_root->keys[0] = d->keys[1];
-            new_root->length = 2;
-            d->parent = new_root;
-            b->parent = new_root;
-            root = new_root;
-        }
-    }
-}
-
-node* add(node* d, int x) {
-    node* n = (node*)malloc(sizeof(node));
-    n->length = 1;
-    n->keys[0] = x;
-    d = root;
-
-    if (d == NULL) {
-        root = n;
-        return root;
-    }
-    node* a = search(d, x);
-    if (a->keys[0] == x) return root;
-    if (a->parent == NULL) {
-        node* new_root = Node();
-        new_root->length = 2;
-        new_root->children[0] = a;
-        new_root->children[1] = n;
-        a->parent = new_root;
-        n->parent = new_root;
-        sort_son(new_root);
-        root = new_root;
-    }
-    else {
-        node* p = a->parent;
-        p->children[p->length] = n;
-        n->parent = p;
-        p->length++;
-        sort_son(p);
-        update_keys(n);
-        split_parent(p);
-    }
-    update_keys(n);
-
-    return root;
-}
-
-node* find_brother(node* v) {
-    node* p = v->parent;
-    if (p == NULL) {
+node* fix(node* v) {
+    if (v->length == 0 && v->parent == NULL)
         return NULL;
-    }
-    if (p->length == 1) {
-        return NULL;
+
+    if (v->length != 0) {
+        if (v->parent) return fix(v->parent);
+        else return v;
     }
 
-    int pos;
-    for (int i = 0; i < p->length; i++) {
-        if (v == p->children[i]) {
-            pos = i;
-            break;
-        }
-    }
+    node* parent = v->parent;
+    if (parent->children[0]->length == 2 || parent->children[1]->length == 2 || parent->length == 2)
+        v = redistribute(v);
+    else
+        v = merge(v);
 
-    if (pos == 0 || pos == 2) {
-        return p->children[1];
-    }
-    else {
-        return p->children[0];
-    }
+    return fix(v);
 }
 
-void delete_in_node(node* v) {
-    node* p = v->parent;
-    int pos = 4;
+node* redistribute(node* leaf) {
+    node* parent = leaf->parent;
+    node* first = parent->children[0];
+    node* second = parent->children[1];
+    node* third = parent->children[2];
+   
+    if ((parent->length == 2) && (first->length < 2) && (second->length < 2) && (third->length < 2)) {
+        if (first == leaf) {
+            parent->children[0] = parent->children[1];
+            parent->children[1] = parent->children[2];
+            parent->children[2] = NULL;
+            insert_to_node(parent->children[0], parent->keys[0]);
+            parent->children[0]->children[2] = parent->children[0]->children[1];
+            parent->children[0]->children[1] = parent->children[0]->children[0];
 
-    for (int i = 0; i < p->length; i++) {
-        if (v == p->children[i]) {
-            pos = i;
-            free(p->children[i]);
+            if (leaf->children[0] != NULL) parent->children[0]->children[0] = leaf->children[0];
+            else if (leaf->children[1] != NULL) parent->children[0]->children[0] = leaf->children[1];
+
+            if (parent->children[0]->children[0] != NULL) parent->children[0]->children[0]->parent = parent->children[0];
+
+            remove_from_node(parent, parent->keys[0]);
+            free(first);
         }
-        if (i > pos) {
-            p->children[i - 1] = p->children[i];
+        else if (second == leaf) {
+            insert_to_node(first, parent->keys[0]);
+            remove_from_node(parent, parent->keys[0]);
+            if (leaf->children[0] != NULL) first->children[2] = leaf->children[0];
+            else if (leaf->children[1] != NULL) first->children[2] = leaf->children[1];
+
+            if (first->children[2] != NULL) first->children[2]->parent = first;
+
+            parent->children[1] = parent->children[2];
+            parent->children[2] = NULL;
+
+            free(second);
+        }
+        else if (third == leaf) {
+            insert_to_node(second, parent->keys[1]);
+            parent->children[2] = NULL;
+            remove_from_node(parent, parent->keys[1]);
+            if (leaf->children[0] != NULL) second->children[2] = leaf->children[0];
+            else if (leaf->children[1] != NULL) second->children[2] = leaf->children[1];
+
+            if (second->children[2] != NULL)  second->children[2]->parent = second;
+
+            free(third);
         }
     }
-    p->length--;
-    update_keys(p->children[0]);
-}
-
-node* del(node* v, int x) {
-    node* d = search(v, x);
-    if (d == NULL) {
-        return NULL;
-    }
-
-    if (d->keys[0] != x) return root;
-
-    node* p = d->parent;
-
-    if (p == NULL) {
-        free(v);
-        root = NULL;
-    }
-    else {
-        if (p->length > 2) {
-            delete_in_node(d);
-            return root;
-        }
-        if (p->length == 2) {
-            node* np = find_brother(p);
-            if (np == NULL) {
-                delete_in_node(d);
-                p->children[0]->parent = NULL;
-                root = p->children[0];
+    else if ((parent->length == 2) && ((first->length == 2) || (second->length == 2) || (third->length == 2))) {
+        if (third == leaf) {
+            if (leaf->children[0] != NULL) {
+                leaf->children[1] = leaf->children[0];
+                leaf->children[0] = NULL;
             }
-            else {
-                node* b = find_brother(d);
-                np->children[np->length] = b;
-                b->parent = np;
-                np->length++;
-                p->length = 1;
-                p->keys[0] = x;
-                sort_son(np);
-                del(v, x);
-                update_keys(b);
-                split_parent(np);
-                update_keys(b);
+
+            insert_to_node(leaf, parent->keys[1]);
+            if (second->length == 2) {
+                parent->keys[1] = second->keys[1];
+                remove_from_node(second, second->keys[1]);
+                leaf->children[0] = second->children[2];
+                second->children[2] = NULL;
+                if (leaf->children[0] != NULL) leaf->children[0]->parent = leaf;
+            }
+            else if (first->length == 2) {
+                parent->keys[1] = second->keys[0];
+                leaf->children[0] = second->children[1];
+                second->children[1] = second->children[0];
+                if (leaf->children[0] != NULL) leaf->children[0]->parent = leaf;
+
+                second->keys[0] = parent->keys[0];
+                parent->keys[0] = first->keys[1];
+                remove_from_node(first, first->keys[1]);
+                second->children[0] = first->children[2];
+                if (second->children[0] != NULL) second->children[0]->parent = second;
+                first->children[2] = NULL;
+            }
+        }
+        else if (second == leaf) {
+            if (third->length == 2) {
+                if (leaf->children[0] == NULL) {
+                    leaf->children[0] = leaf->children[1];
+                    leaf->children[1] = NULL;
+                }
+                insert_to_node(second, parent->keys[1]);
+                parent->keys[1] = third->keys[0];
+                remove_from_node(third, third->keys[0]);
+                second->children[1] = third->children[0];
+                if (second->children[1] != NULL) second->children[1]->parent = second;
+                third->children[0] = third->children[1];
+                third->children[1] = third->children[2];
+                third->children[2] = NULL;
+            }
+            else if (first->length == 2) {
+                if (leaf->children[1] == NULL) {
+                    leaf->children[1] = leaf->children[0];
+                    leaf->children[0] = NULL;
+                }
+                insert_to_node(second, parent->keys[0]);
+                parent->keys[0] = first->keys[1];
+                remove_from_node(first, first->keys[1]);
+                second->children[0] = first->children[2];
+                if (second->children[0] != NULL) second->children[0]->parent = second;
+                first->children[2] = NULL;
+            }
+        }
+        else if (first == leaf) {
+            if (leaf->children[0] == NULL) {
+                leaf->children[0] = leaf->children[1];
+                leaf->children[1] = NULL;
+            }
+            insert_to_node(first, parent->keys[0]);
+            if (second->length == 2) {
+                parent->keys[0] = second->keys[0];
+                remove_from_node(second, second->keys[0]);
+                first->children[1] = second->children[0];
+                if (first->children[1] != NULL) first->children[1]->parent = first;
+                second->children[0] = second->children[1];
+                second->children[1] = second->children[2];
+                second->children[2] = NULL;
+            }
+            else if (third->length == 2) {
+                parent->keys[0] = second->keys[0];
+                second->keys[0] = parent->keys[1];
+                parent->keys[1] = third->keys[0];
+                remove_from_node(third, third->keys[0]);
+                first->children[1] = second->children[0];
+                if (first->children[1] != NULL) first->children[1]->parent = first;
+                second->children[0] = second->children[1];
+                second->children[1] = third->children[0];
+                if (second->children[1] != NULL) second->children[1]->parent = second;
+                third->children[0] = third->children[1];
+                third->children[1] = third->children[2];
+                third->children[2] = NULL;
             }
         }
     }
-    return root;
+    else if (parent->length == 1) {
+        insert_to_node(leaf, parent->keys[0]);
+
+        if (first == leaf && second->length == 2) {
+            parent->keys[0] = second->keys[0];
+            remove_from_node(second, second->keys[0]);
+
+            if (leaf->children[0] == NULL) leaf->children[0] = leaf->children[1];
+
+            leaf->children[1] = second->children[0];
+            second->children[0] = second->children[1];
+            second->children[1] = second->children[2];
+            second->children[2] = NULL;
+            if (leaf->children[1] != NULL) leaf->children[1]->parent = leaf;
+        }
+        else if (second == leaf && first->length == 2) {
+            parent->keys[0] = first->keys[1];
+            remove_from_node(first, first->keys[1]);
+
+            if (leaf->children[1] == NULL) leaf->children[1] = leaf->children[0];
+
+            leaf->children[0] = first->children[2];
+            first->children[2] = NULL;
+            if (leaf->children[0] != NULL) leaf->children[0]->parent = leaf;
+        }
+    }
+    return parent;
 }
 
 int get_height(node* v) {
@@ -272,108 +383,43 @@ int get_height(node* v) {
     return h;
 }
 
+node* merge(node* leaf) {
+    node* parent = leaf->parent;
 
-node* merge(node* l, node* r) {
-    if (l == NULL) {
-        return r;
-    }
-    if (r == NULL) {
-        return l;
-    }
-    int h_right = get_height(r);
-    int h_left = get_height(l);
-    if (h_left == h_right) {
-        node* new_root = (node*)malloc(sizeof(node));
-        new_root->length = 2;
-        new_root->children[0] = l;
-        l->parent = new_root;
-        new_root->children[1] = r;
-        r->parent = new_root;
-        update_keys(r);
-        return new_root;
-    }
+    if (parent->children[0] == leaf) {
+        insert_to_node(parent->children[1], parent->keys[0]);
+        parent->children[1]->children[2] = parent->children[1]->children[1];
+        parent->children[1]->children[1] = parent->children[1]->children[0];
 
-    node* v;
-    if (h_right > h_left) {
-        v = r;
-        while (abs(h_right - get_height(v)) > 1) {
-            v = v->children[0];
-        }
-        r->children[r->length] = l;
-        r->length++;
-        l->parent = r;
-        sort_son(r);
-        update_keys(l);
-        node* new_root = r;
-        split_parent(r);
-        return new_root;
+        if (leaf->children[0] != NULL) parent->children[1]->children[0] = leaf->children[0];
+        else if (leaf->children[1] != NULL) parent->children[1]->children[0] = leaf->children[1];
+
+        if (parent->children[1]->children[0] != NULL) parent->children[1]->children[0]->parent = parent->children[1];
+
+        remove_from_node(parent, parent->keys[0]);
+        free(parent->children[0]);
+        parent->children[0] = NULL;
     }
-    else {
-        v = l;
-        while (abs(h_left - get_height(v)) > 1) {
-            v = v->children[0];
-        }
-        l->children[l->length] = r;
-        l->length++;
-        r->parent = l;
-        update_keys(r);
-        node* new_root = l;
-        split_parent(l);
-        return new_root;
+    else if (parent->children[1] == leaf) {
+        insert_to_node(parent->children[0], parent->keys[0]);
+
+        if (leaf->children[0] != NULL) parent->children[0]->children[2] = leaf->children[0];
+        else if (leaf->children[1] != NULL) parent->children[0]->children[2] = leaf->children[1];
+
+        if (parent->children[0]->children[2] != NULL) parent->children[0]->children[2]->parent = parent->children[0];
+
+        remove_from_node(parent, parent->keys[0]);
+        free(parent->children[1]);
+        parent->children[1] = NULL;
     }
 
-}
-
-
-split_retval split(node* d, int key) {
-    node_list* l_list = (node_list*)malloc(sizeof(node_list));
-    node_list* l_ptr = l_list;
-    node_list* r_list = (node_list*)malloc(sizeof(node_list));
-    node_list* r_ptr = r_list;
-
-    while (d->length != 1) {
-        if (d->length == 2) {
-            if (key <= d->keys[0]) {
-                r_ptr = list_add(r_ptr, d->children[1]);
-                d = d->children[0];
-            }
-            else {
-                l_ptr = list_add(l_ptr, d->children[0]);
-                d = d->children[1];
-            }
-        }
-        else if (key <= d->keys[0]) {
-            r_ptr = list_add(r_ptr, d->children[1]);
-            r_ptr = list_add(r_ptr, d->children[2]);
-            d = d->children[0];
-        }
-        else if (key <= d->keys[1]) {
-            l_ptr = list_add(l_ptr, d->children[0]);
-            r_ptr = list_add(r_ptr, d->children[2]);
-            d = d->children[1];
-        }
-        else {
-            l_ptr = list_add(l_ptr, d->children[0]);
-            l_ptr = list_add(l_ptr, d->children[1]);
-            d = d->children[2];
-        }
+    if (parent->parent == NULL) {
+        node* tmp = NULL;
+        if (parent->children[0] != NULL) tmp = parent->children[0];
+        else tmp = parent->children[1];
+        tmp->parent = NULL;
+        free(parent);
+        return tmp;
     }
-    l_ptr = list_add(l_ptr, d);
-
-    node* l = NULL;
-    node* r = NULL;
-    l_ptr = l_list->next;
-    while (l_ptr != NULL) {
-        l = merge(l, l_ptr->val);
-        l_ptr = l_ptr->next;
-    }
-    while (r_ptr != r_list) {
-        r = merge(r, r_ptr->val);
-        r_ptr = r_ptr->prev;
-    }
-
-    split_retval ret;
-    ret.left = l;
-    ret.right = r;
-    return ret;
+    return parent;
 }
