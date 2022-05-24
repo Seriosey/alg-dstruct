@@ -1,10 +1,13 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "I11-Tree.h"
 #include <malloc.h>
+#include "I11-Tree.h"
 #define T 2
-#define _CRT_SECURE_NO_WARNINGS
+
+
 
 node* create_node(int key, node* first, node* second, node* parent) {
     node* n = (node*)malloc(sizeof(node));
@@ -13,8 +16,8 @@ node* create_node(int key, node* first, node* second, node* parent) {
     n->children[0] = first;
     n->children[1] = second;
     n->children[2] = NULL;
-    n->parent = parent;
     n->children[3] = NULL;
+    n->parent = parent;
     n->brother = NULL;
     return n;
 }
@@ -34,11 +37,13 @@ int find(node* v, int x) {
     if (v == NULL)
         return 0;
     for (int i = 0; i < v->length; i++)
-        if (v->keys[i] == x) return 1;
+        if (v->keys[i] == x) return 1; 
     return 0;
 }
 
 node* v;
+
+node* leaf;
 
 node* root = NULL;
 
@@ -109,16 +114,17 @@ void insert_to_node(node* v, int x) {
     sort(v);
 }
 
-void remove_from_node(node* v, int k) {
-    if (v->length >= 1 && v->keys[0] == k) {
+void remove_from_node(node* v, int x) {
+    if (v->length >= 1 && v->keys[0] == x) {
         v->keys[0] = v->keys[1];
         v->keys[1] = v->keys[2];
         v->length -= 1;
     }
-    else if (v->length == 2 && v->keys[1] == k) {
+    else if (v->length == 2 && v->keys[1] == x) {
         v->keys[1] = v->keys[2];
         v->length -= 1;
     }
+    //else return;
 }
 
 void sort(node* v) {
@@ -129,6 +135,7 @@ void sort(node* v) {
             v->keys[0] = v->keys[1];
             v->keys[1] = temp;
         }
+        //else return;
     }
     else if (v->length == 3) {
         if (v->keys[0] > v->keys[1]) {
@@ -146,7 +153,9 @@ void sort(node* v) {
             v->keys[1] = v->keys[2];
             v->keys[2] = temp;
         }
+        //else return;
     }
+    //else return;
 }
 
 node* search(node* v, int x) {
@@ -155,7 +164,7 @@ node* search(node* v, int x) {
     else if (x < v->keys[0]) return search(v->children[0], x);
     else if ((v->length == 2) && (x < v->keys[1]) || (v->length == 1)) return search(v->children[1], x);
     else if (v->length == 2) return search(v->children[2], x);
-    else return NULL;
+    //else return NULL;
 }
 
 node* delete(node* v, int x) {
@@ -179,9 +188,7 @@ node* delete(node* v, int x) {
         }
         knode = min;
     }
-    else return v;
-
-    delete (knode, x);
+    remove_from_node (knode, x);
     return fix(knode);
 }
 
@@ -371,17 +378,11 @@ node* redistribute(node* leaf) {
             if (leaf->children[0] != NULL) leaf->children[0]->parent = leaf;
         }
     }
+   // else return parent;
     return parent;
 }
 
-int get_height(node* v) {
-    int h = 0;
-    while (v->length != 1) {
-        h++;
-        v = v->children[0];
-    }
-    return h;
-}
+
 
 node* merge(node* leaf) {
     node* parent = leaf->parent;
@@ -412,6 +413,7 @@ node* merge(node* leaf) {
         free(parent->children[1]);
         parent->children[1] = NULL;
     }
+    
 
     if (parent->parent == NULL) {
         node* tmp = NULL;
@@ -421,5 +423,33 @@ node* merge(node* leaf) {
         free(parent);
         return tmp;
     }
+    
     return parent;
+}
+
+
+int main()
+{
+    char cmd;
+    int value;
+    node* v = NULL;
+    while (fscanf(stdin, "%c %i", &cmd, &value)!=EOF)
+        switch (cmd)
+        {
+        case 'a':
+            v = insert(v, value);
+            break;
+        case 'r':
+            v = delete(v, value);
+            break;
+        case 'f':
+            if (search(v, value))
+                fprintf(stdout, "yes\n");
+            else
+                fprintf(stdout, "no\n");
+            break;
+        default:
+            break;
+        }
+   // return 0;
 }
