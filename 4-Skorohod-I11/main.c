@@ -5,13 +5,14 @@
 #include <malloc.h>
 #define _CRT_SECURE_NO_WARNINGS
 
+
+
 int main()
 {
     char cmd;
     int value;
     node* v = NULL;
-    while (fscanf(stdin, "%c %i", &cmd, &value))
-    {
+    while (fscanf(stdin, "%c %i", &cmd, &value)!=EOF)
         switch (cmd)
         {
         case 'a':
@@ -26,9 +27,8 @@ int main()
             else
                 fprintf(stdout, "no\n");
             break;
-
+        default:
+            break;
         }
-
-    }
-    return 0;
+   // return 0;
 }
