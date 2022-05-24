@@ -426,30 +426,3 @@ node* merge(node* leaf) {
     
     return parent;
 }
-
-
-int main()
-{
-    char cmd;
-    int value;
-    node* v = NULL;
-    while (fscanf(stdin, "%c %i", &cmd, &value)!=EOF)
-        switch (cmd)
-        {
-        case 'a':
-            v = insert(v, value);
-            break;
-        case 'r':
-            v = delete(v, value);
-            break;
-        case 'f':
-            if (search(v, value))
-                fprintf(stdout, "yes\n");
-            else
-                fprintf(stdout, "no\n");
-            break;
-        default:
-            break;
-        }
-   // return 0;
-}
